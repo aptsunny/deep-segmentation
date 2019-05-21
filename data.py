@@ -10,16 +10,18 @@ from sklearn.cross_validation import train_test_split
 data_path = '.'
 raw_data_path = os.path.join(data_path, 'raw')
 npy_data_path = os.path.join(data_path, 'npy')
+pre_data_path = os.path.join(data_path, 'predicted')
 
-image_rows = 96
-image_cols = 128
+image_rows = 96#480
+image_cols = 128#640
 
 
 def preprocess(imgs, bit_image=8):
     if bit_image == 8:
-        imgs_p = np.ndarray((imgs.shape[0], image_rows, image_cols), dtype=np.uint8)
+        imgs_p = np.ndarray((imgs.shape[0], image_rows, image_cols), dtype=np.uint8)#0-255
     else:
-        imgs_p = np.ndarray((imgs.shape[0], image_rows, image_cols), dtype=np.uint16)
+        imgs_p = np.ndarray((imgs.shape[0], image_rows, image_cols), dtype=np.uint16)##0-65535
+
     for i in range(imgs.shape[0]):
         imgs_p[i] = resize(imgs[i], (image_rows, image_cols), preserve_range=True)
     return imgs_p[..., np.newaxis]
@@ -36,13 +38,13 @@ def getData(path, foldlist):
 
         file_name = image_path.split('/')[-1].split('_mask')[0]
 
-        mask = imread(os.path.join(path, file_name + '_mask' + '.png'), as_grey=True)
+        mask = imread(os.path.join(file_name + '_mask' + '.png'), as_grey=True)#path,label
         masks.append(mask)
 
-        image = imread(os.path.join(path, file_name + '_8' + '.png'), as_grey=True)
+        image = imread(os.path.join(file_name + '_8' + '.png'), as_grey=True)#path, clear
         images.append(image)
 
-        image16 = imread(os.path.join(path, file_name + '.png'), as_grey=True)
+        image16 = imread(os.path.join(file_name + '.png'), as_grey=True)#path, black
         images16.append(image16)
 
         if image_id not in ids:
@@ -54,12 +56,14 @@ def getData(path, foldlist):
     print('Loading done.')
 
     assert len(images) == len(masks)
-    assert len(images) == len(ids), print(len(images), len(ids))
+    assert len(images) == len(ids), print(len(images), len(ids), len(masks))#,images,ids
     images = np.array(images, dtype=np.uint8)
-    images16 = np.array(images, dtype=np.uint16)
+    images16 = np.array(images, dtype=np.uint16)#images16 = np.array(image16, dtype=np.uint16)
     masks = np.array(masks, dtype=np.uint8)
 
     masks = preprocess(masks, 8)
+    print('masks1.shape', masks.shape)
+
     images = preprocess(images, 8)
     images16 = preprocess(images16, 16)
 
@@ -75,7 +79,7 @@ def create_train_test_data():
         image_path = os.path.join(raw_data_path, images_dir, image_name)
         all_images_path.append(image_path)
 
-    train_list, test_list = train_test_split([x for x in all_images_path if '_mask' in x], test_size=0.1)
+    train_list, test_list = train_test_split([x for x in all_images_path if '_mask' in x], test_size=0.3)#
 
     train_images, train_images16, train_masks, train_ids = getData(os.path.join(raw_data_path, images_dir), train_list)
     test_images, test_images16, test_masks, test_ids = getData(os.path.join(raw_data_path, images_dir), test_list)
@@ -94,6 +98,26 @@ def create_train_test_data():
     np.save(os.path.join(npy_data_path, 'ids_test.npy'), test_ids)
     print('Saving to .npy files done.')
 
+    pre_images_path = []
+    for image_name in os.listdir(os.path.join(pre_data_path)):
+        image_path = os.path.join(pre_data_path, image_name)
+        pre_images_path.append(image_path)
+
+    pre_list, pre_2_list = train_test_split([x for x in pre_images_path if '_mask' in x], test_size=0.1)#
+
+    pre_images, pre_images16, pre_masks, pre_ids = getData(os.path.join(pre_data_path), pre_list)
+    #pre_images, pre_images16, pre_masks, pre_ids = getData(os.path.join(pre_data_path), pre_images_path)
+    pre_2_images, pre_2_images16, pre_2_masks, pre_2_ids = getData(os.path.join(pre_data_path), pre_2_list)
+
+    np.save(os.path.join(npy_data_path, 'images_pre.npy'), pre_images)
+    np.save(os.path.join(npy_data_path, 'images16_pre.npy'), pre_images16)
+    np.save(os.path.join(npy_data_path, 'masks_pre.npy'), pre_masks)
+    np.save(os.path.join(npy_data_path, 'ids_pre.npy'), pre_ids)
+    #np.save(os.path.join(npy_data_path, 'images_test.npy'), test_images)
+    #np.save(os.path.join(npy_data_path, 'images16_test.npy'), test_images16)
+    #np.save(os.path.join(npy_data_path, 'masks_test.npy'), test_masks)
+    #np.save(os.path.join(npy_data_path, 'ids_test.npy'), test_ids)
+    print('Saving to pre.npy files done.')
 
 def load_train_data(bit):
     images = np.load(os.path.join(npy_data_path, 'images_train.npy'))
@@ -115,6 +139,17 @@ def load_test_data(bit):
         return images, masks, ids
     else:
         return images16, masks, ids
+
+def load_pre_data(bit):
+    images = np.load(os.path.join(npy_data_path, 'images_pre.npy'))
+    images16 = np.load(os.path.join(npy_data_path, 'images16_pre.npy'))
+    masks = np.load(os.path.join(npy_data_path, 'masks_pre.npy'))
+    ids = np.load(os.path.join(npy_data_path, 'ids_pre.npy'))
+    if bit == 8:
+        return images, masks, ids
+    else:
+        return images16, masks, ids
+
 
 
 def dump_predictions(images, ids):

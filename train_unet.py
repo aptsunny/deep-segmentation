@@ -14,11 +14,12 @@ from data import load_train_data, load_test_data
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
-img_rows = 96
-img_cols = 128
+img_rows = 96#480
+img_cols = 128#640
+
 
 smooth = 1.
-epochs = 200
+epochs = 30#200
 
 
 def dice_coef(y_true, y_pred):
@@ -144,9 +145,7 @@ def train_and_predict(bit):
     print('Loading and train data (bit = ' + str(bit) + ') ...')
     print('-' * 30)
     imgs_bit_train, imgs_bit_mask_train, _ = load_train_data(bit)
-
     print(imgs_bit_train.shape[0], imgs_bit_mask_train.shape[0])
-
     imgs_bit_train = imgs_bit_train.astype('float32')
     mean = np.mean(imgs_bit_train)
     std = np.std(imgs_bit_train)
@@ -156,6 +155,10 @@ def train_and_predict(bit):
 
     imgs_bit_mask_train = imgs_bit_mask_train.astype('float32')
     imgs_bit_mask_train /= 255.  # scale masks to [0, 1]
+    print('imgs_bit_train.shape:',imgs_bit_train.shape)
+    print('imgs_bit_mask_train:', imgs_bit_mask_train.shape)
+    print('imgs_bit_train:',imgs_bit_train)
+
 
     print('-' * 30)
     print('Creating and compiling model (bit = ' + str(bit) + ') ...')
@@ -202,7 +205,7 @@ def train_and_predict(bit):
             os.mkdir(pred_dir)
         for image, image_id in zip(imgs_mask_test, imgs_bit_id_test):
             image = (image[:, :, 0] * 255.).astype(np.uint8)
-            imsave(os.path.join(pred_dir, str(image_id).split('/')[-1] + '_pred.png'), image)
+            imsave(os.path.join(str(image_id).split('/')[-1] + '_pred.png'), image)#pred_dir,
 
     elif bit == 16:
         print('-' * 30)
@@ -213,7 +216,7 @@ def train_and_predict(bit):
             os.mkdir(pred_dir)
         for image, image_id in zip(imgs_mask_test, imgs_bit_id_test):
             image = (image[:, :, 0] * 255.).astype(np.uint8)
-            imsave(os.path.join(pred_dir, str(image_id).split('/')[-1] + '_pred.png'), image)
+            imsave(os.path.join(str(image_id).split('/')[-1] + '_pred.png'), image)#pred_dir,
 
 
 if __name__ == '__main__':

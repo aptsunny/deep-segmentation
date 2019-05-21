@@ -14,8 +14,8 @@ from data import load_train_data, load_test_data
 
 K.set_image_data_format('channels_last')  # TF dimension ordering in this code
 
-img_rows = 96
-img_cols = 128
+img_rows = 480#96
+img_cols = 640#128
 
 smooth = 1.
 epochs = 200

@@ -1,25 +1,104 @@
 import argparse
-
+#import cv2
 import numpy as np
 from PIL import Image
 from primesense import openni2
 from skimage.transform import resize
 
-from train_unet3_conv import get_conv
-
+from train_unet import get_unet
 img_rows = 96
 img_cols = 128
-
+i=0
+from data import load_pre_data#
+from skimage.io import imsave
+import os
 if __name__ == '__main__':
-    p = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="")
-    p.add_argument('--v', dest='video_path', action='store', default='', help='path Video')
-    args = p.parse_args()
+    #p = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description="")
+    #p.add_argument('--v', dest='video_path', action='store', default='', help='path Video')
+    #args = p.parse_args()
 
-    model = get_conv()
+    model = get_unet()
+    #model_select
     bit = 16
+    model.load_weights('weights_unet_16.h5')
 
-    model.load_weights('weights_conv_16.h5')
+    imgs_bit_test, imgs_mask_test, imgs_bit_id_test = load_pre_data(bit)#
+    imgs_bit_test = imgs_bit_test.astype('float32')
+    mean = np.mean(imgs_bit_test)
+    std = np.std(imgs_bit_test)
+    imgs_bit_test -= mean
+    imgs_bit_test /= std
+    print("img.shape:", imgs_bit_test.shape)
 
+    if bit == 8:
+        print('-' * 30)
+        print('Saving predicted masks to files...')
+        print('-' * 30)
+        pred_dir = 'preds_8'
+        if not os.path.exists(pred_dir):
+            os.mkdir(pred_dir)
+        #n_frames = pbs.get_number_of_frames(depth_stream)
+        #np.ndarray((imgs_bit_test.shape[0], img_rows, img_cols), dtype=np.uint16)#
+        predicted_image = model.predict(imgs_bit_test, verbose=1)#progress bar
+
+        for i in range(0, imgs_bit_test.shape[0]):
+            image = (predicted_image[i][:, :, 0] * 255.).astype(np.uint8)
+            img = Image.fromarray(image)
+            #img.save("./predicted_images/" + str(i).zfill(4) + ".png")
+            img.save("./"+pred_dir+"/" + str(i).zfill(4) + ".png")
+    else:
+        print('-' * 30)
+        print('Saving predicted masks to files...')
+        print('-' * 30)
+        pred_dir = 'preds_16'
+        if not os.path.exists(pred_dir):
+            os.mkdir(pred_dir)
+        #n_frames = pbs.get_number_of_frames(depth_stream)
+        #np.ndarray((imgs_bit_test.shape[0], img_rows, img_cols), dtype=np.uint16)#
+        predicted_image = model.predict(imgs_bit_test, verbose=1)#progress bar
+
+        for i in range(0, imgs_bit_test.shape[0]):
+            image = (predicted_image[i][:, :, 0] * 255.).astype(np.uint8)#grey
+            #cv2.imwrite("./" + pred_dir + "/" + str(i).zfill(4) + "_2.png", img)
+            """"""
+            img = Image.fromarray(image)
+            #img.save("./predicted_images/" + str(i).zfill(4) + ".png")
+            img.save("./"+pred_dir+"/" + str(i).zfill(4) + ".png")
+
+
+
+
+
+        #img.save("./predicted_images/" + ".png")
+        #imsave(os.path.join("D:\Program Files\sunrelease\deep-segmentation\predicted_images\ "+'_pred2.png'), img)  # pred_dir,
+
+
+    """
+        for image, image_id in zip(imgs_mask_test, imgs_bit_id_test):
+            image = (image[:, :, 0] * 255.).astype(np.uint8)
+            img = Image.fromarray(image)#
+            imsave(os.path.join(str(image_id).split('/')[-1] + '_pred2.png'), image)#pred_dir,
+
+    
+
+    print('-' * 30)
+    print('Saving predicted masks to files...')
+    print('-' * 30)
+    pred_dir = 'preds_16'
+    if not os.path.exists(pred_dir):
+        os.mkdir(pred_dir)
+    for image, image_id in zip(imgs_bit_test, imgs_bit_id_test):
+        #image = (image[:, :, 0] * 255.).astype(np.uint8)
+        image = (image[:, :, 0] * 255.).astype('float32')
+        #imgs_bit_mask_train = imgs_bit_mask_train.astype('float32')
+        print("img.shape:",image.shape)
+        print("img:",image)
+        img = Image.fromarray(image)#
+        imsave(os.path.join(str(image_id).split('/')[-1] + '_pred2.png'), image)#pred_dir,
+        #img = Image.fromarray(image)
+        #img.save("./predicted_images/" + str(i).zfill(4) + ".png")
+    """
+    """
     dev = openni2.Device
     try:
         openni2.initialize()
@@ -63,3 +142,4 @@ if __name__ == '__main__':
 
     depth_stream.stop()
     openni2.unload()
+    """
